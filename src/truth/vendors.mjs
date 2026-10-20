@@ -35,6 +35,13 @@ export const VENDORS = [
         efforts: { off: null, low: 'low', high: 'high', max: 'max' },
         collapses: { medium: 'high', xhigh: 'high' },
         note: 'pi-ai 内置目录缺 off 键 —— 触发 #1580 的 8192 截断' },
+      // 出处：https://developers.cloudflare.com/workers-ai/models/deepseek-v4.1-flash-1017/
+      // （1,048,576 上下文；Reasoning none/low/high(default)/max；Vision Yes）
+      { match: /^deepseek-v4\.1-flash(?:-\d{4})?$/i, name: 'DeepSeek V4.1 Flash',
+        contextWindow: 1048576, maxTokens: 384000, input: ['text', 'image'],
+        efforts: { off: null, low: 'low', high: 'high', max: 'max' },
+        collapses: { medium: 'high', xhigh: 'high' },
+        note: 'V4.1 Flash：原生视觉；思考档位与 V4 Flash 一致（none/low/high/max）' },
       { match: /^deepseek-v4-flash-vision/i, name: 'DeepSeek V4 Flash Vision',
         contextWindow: 1000000, maxTokens: 384000, input: ['text', 'image'],
         efforts: { off: null, low: 'low', high: 'high', max: 'max' },
@@ -291,6 +298,13 @@ export const VENDORS = [
         forcedThinking: 'k2.7-code 的 thinking.type 只接受 enabled，且不支持 reasoning_effort', contextWindow: 262144, maxTokens: 131072, input: ['text'],
         efforts: { high: 'high' },
         constraints: ['k2.7-code 的 thinking.type 只接受 enabled，且不支持 reasoning_effort'] },
+      // 出处：Moonshot Kimi K2.8 Preview 发布说明（Kimi Code id 为 kimi-for-coding）：
+      // 1,048,576 上下文、图片与视频输入、low/high/max 三档，默认 max。
+      // 官方 use-thinking-models 表未收录该型号，固沿用 K3 的 thinkingLevelMap。
+      { match: /^kimi-k2\.8(?!-code)/i,
+        forcedThinking: 'K2.8 沿用 K3 档位表，官方未给 off 档', contextWindow: 1048576, maxTokens: 131072, input: ['text', 'image'],
+        efforts: { low: 'low', high: 'high', max: 'max' },
+        note: 'K2.8 Preview：图片/视频输入，档位 low/high/max（默认 max），与 K3 一致' },
       { match: /^kimi-k2\.[56]/i, contextWindow: 262144, maxTokens: 131072, input: ['text'],
         efforts: { off: null, high: 'high' } },
       // 出处：pi-ai moonshotai.json。thinking 变体 reasoning:true 且无 thinkingLevelMap /
@@ -551,6 +565,11 @@ export const VENDORS = [
       { match: /^mimo-v2\.5/i, contextWindow: 1048576, maxTokens: 131072, input: ['text', 'image'],
         efforts: { off: null, high: 'high' },
         note: 'pi-ai xiaomi.json：mimo-v2.5 含视觉；pro 纯文本' },
+      // 出处：https://mimo.mi.com/docs/en-US/quick-start/usage-guide/text-generation/deep-thinking
+      // （thinking.type：enabled / disabled，默认开启；V2.6 系列为 omni-modal）
+      { match: /^mimo-v2\.6/i, contextWindow: 1048576, maxTokens: 131072, input: ['text', 'image'],
+        efforts: { off: 'disabled', high: 'enabled' },
+        note: 'V2.6：thinking.type 只有 enabled/disabled 开关，无离散档；全模态' },
     ],
   },
   {
@@ -562,6 +581,20 @@ export const VENDORS = [
       { match: /^muse-spark-1\.2-contributor/i, contextWindow: 1048576, maxTokens: 131072, input: ['text', 'image'],
         efforts: { off: null, minimal: 'minimal', low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh' },
         note: 'pi-ai opencode-go.json thinkingLevelMap：off:null + minimal/low/medium/high/xhigh' },
+    ],
+  },
+  {
+    id: 'stepfun', catalogProviders: ['stepfun', 'stepfun-ai'], label: '阶跃 StepFun',
+    match: [/api\.stepfun\.(ai|com)/i], api: 'openai-completions',
+    source: 'https://platform.stepfun.ai/docs/en/guides/models/step-5-preview',
+    models: [
+      // 出处：step-5-preview 文档「Reasoning effort 支持 low/medium/high」
+      // 与「输入：文本、图片、视频；上下文 1M；输出上限 64k」。
+      { match: /^step-5-preview$/i,
+        forcedThinking: 'API 只提供 reasoning_effort low/medium/high，没有关闭思考的档位', contextWindow: 1048576, maxTokens: 65536, input: ['text', 'image'],
+        efforts: { low: 'low', medium: 'medium', high: 'high' },
+        constraints: ['reasoning_effort 只有 low/medium/high，没有 none/off'],
+        note: 'Step 5 Preview：1M 上下文、图片/视频输入、推理档 low/medium/high' },
     ],
   },
 ];
