@@ -142,6 +142,27 @@ function unknownKeep(existing, overlay) {
   return out;
 }
 
+/**
+ * 宿主 llm-pi-ai 的 schema 把「条目没写 input」规范化成空数组 []，而不是回落到
+ * 路由的 defaultInput —— 空数组意味着「这个模型什么模态都不收」，模型选择器就会
+ * 把图片判成不支持。所以每条写出去的模型都必须带非空 input：有真值/端点自报就用，
+ * 否则用路由默认值。
+ * @param {object} route 已规划好的 route（含 defaultInput）
+ * @param {object[]} models 该 route 的模型条目
+ * @returns {object[]} 补过 input 的条目
+ */
+function pinInput(route, models, enabled = true) {
+  // includeIO=false（--no-io）是用户显式要求不碰模态字段，此时不能兜底。
+  if (!enabled) return models;
+  const fallback = Array.isArray(route?.defaultInput) && route.defaultInput.length
+    ? [...route.defaultInput]
+    : ['text'];
+  return models.map((m) => {
+    if (Array.isArray(m.input) && m.input.length) return m;
+    return { ...m, input: [...fallback] };
+  });
+}
+
 /** 不凭空写路由级 reasoning；只修正已经写了、但会 UNSUPPORTED_REASONING_EFFORT 的值。 */
 function applyRouteEffort(route, next, entries, notes, fallback) {
   const prev = next.reasoning;
@@ -283,7 +304,7 @@ export function planGatewayRoute(route, profile, gw, stateSlice, defaultEffort =
     delete next.models;
     notes.push(`${route}: /models 拉到 ${gw.ids?.length ?? 0} 个 id，没有可写入的（真值库不认得或在删除名单里）—— 不写空 models[]，可手动添加或补 src/vendors.mjs 规则`);
   } else if (gw?.fetchOk || current.length) {
-    next.models = nextModels;
+    next.models = pinInput(next, nextModels, includeIO);
   } else {
     delete next.models;
   }
@@ -345,6 +366,8 @@ export function planCatalogRoute(
     removed++;
   }
   next.modelOverrides = overrides;
+  // 目录路由的 models[]（用户自写的条目）同样受「漏写 input 会被规范化成 []」影响。
+  if (Array.isArray(next.models) && next.models.length) next.models = pinInput(next, next.models, writeInput);
   if (n) notes.push(`${route}: 更新 ${n} 条 modelOverrides${nInput ? `（含 ${nInput} 条视觉）` : ' 档位表'}`);
   if (removed) notes.push(`${route}: 清理 ${removed} 条目录中已失效的插件 override`);
   // override 值本身没有 id 字段，补上让 clampNote 能指名道姓

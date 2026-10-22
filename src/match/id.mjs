@@ -61,6 +61,13 @@ function prefixStripped(raw) {
  * 更精确的变换之后，且单个词干命中与否仍由真值库裁决。
  */
 const SOFT_TRANSFORMS = [
+  // 大小写归一：中转站常把官方小写 id 写成 DeepSeek-V4.1-Flash-1017 这种
+  // 首字母大写的展示名。真值库的正则多数带 /i，但带厂商前缀的写法
+  // （DeepSeek-V4.1）会把 `DeepSeek-` 当成模型名的一部分，剥完再归一才对得上。
+  ['大写转小写', (id) => {
+    const lower = id.toLowerCase();
+    return lower !== id ? [lower] : null;
+  }],
   // 平台变体标记：OpenRouter 用 `:batch` / `:free` 标同一模型的不同履约方式
   // （实测 427 个模型里 85 个带这类后缀）。多数规则是前缀匹配、顺带就命中了，
   // 但带结尾锚的规则（gpt-5.5(-|$)）会被冒号挡住 —— openai/gpt-5.x:batch 全失配。

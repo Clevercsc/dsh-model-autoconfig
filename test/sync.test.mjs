@@ -118,6 +118,30 @@ test('网关：includeIO=false 不补视觉', () => {
   assert.ok(!('input' in r.profile.models[1]));
 });
 
+test('网关：真值库认得但配置漏写 input 的条目也要补回模态', () => {
+  // 宿主把「没写 input」规范化成 []（不是回落到 defaultInput），
+  // 模型选择器据此判成不支持图片。规划器必须显式写回 input。
+  const r = planGatewayRoute('wb-global', {
+    baseURL: 'http://localhost:8788/v1',
+    defaultInput: ['text'],
+    models: [{ id: 'glm-5.3', contextWindow: 1000000, maxTokens: 48000 }],
+  }, { fetchOk: false, ids: [] }, { modelIds: ['glm-5.3'] });
+  const m = r.profile.models[0];
+  assert.deepEqual(m.input, ['text'], '漏写 input 时用路由默认值兜底');
+  assert.ok(m.reasoningEfforts && Object.keys(m.reasoningEfforts).length > 0,
+    '认得出的模型必须带上档位表');
+});
+
+test('网关：未知 id 且没写 input 时补默认模态', () => {
+  const r = planGatewayRoute('cpa', {
+    baseURL: 'http://x/v1',
+    defaultInput: ['text'],
+    models: [{ id: 'space-bunny', contextWindow: 1000000 }],
+  }, { fetchOk: false, ids: [] }, { modelIds: ['space-bunny'] });
+  assert.deepEqual(r.profile.models[0].input, ['text']);
+  assert.equal('reasoningEfforts' in r.profile.models[0], false, '认不出就不编档位');
+});
+
 test('网关：未知 id 按名字补视觉，不编档位', () => {
   const r = planGatewayRoute('cpa', {
     baseURL: 'http://x/v1',
