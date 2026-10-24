@@ -290,6 +290,16 @@ export const VENDORS = [
     match: [/api\.moonshot\./i, /platform\.kimi\.com/i], api: 'openai-completions',
     source: 'https://platform.kimi.com/docs/guide/use-thinking-models',
     models: [
+      // 出处：Kimi K3.1 Pro 快速开始 + 定价页（2026-10-23 发布）——
+      // https://platform.kimi.ai/docs/guide/kimi-k3-1-pro-quickstart 与 https://platform.kimi.ai/docs/pricing/chat
+      // 1,048,576 上下文；原生图片与视频输入（官方有 Vision input 章节）；
+      // 顶层 reasoning_effort low/high/max，默认 max，恒开不可关。
+      // 必须排在 /^kimi-k3/i 之前：那条是前缀通配，会先命中并把多模态判成纯文本。
+      { match: /^kimi-k3\.1-pro(?:-highspeed)?$/i,
+        forcedThinking: 'K3.1 Pro 始终推理且 Preserved Thinking 恒开，官方明示不传 thinking 参数；档位 low/high/max，没有 medium',
+        contextWindow: 1048576, maxTokens: 131072, input: ['text', 'image'],
+        efforts: { low: 'low', high: 'high', max: 'max' },
+        note: 'K3.1 Pro：多模态（图片/视频）、1,048,576 上下文、顶层 reasoning_effort 默认 max；highspeed 同模型仅提速' },
       { match: /^kimi-k3/i,
         forcedThinking: 'K3 恒开 Preserved Thinking，官方文档明示不可关闭；档位 low/high/max，没有 medium', contextWindow: 1000000, maxTokens: 131072, input: ['text'],
         efforts: { low: 'low', high: 'high', max: 'max' },

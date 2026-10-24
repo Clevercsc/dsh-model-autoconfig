@@ -111,6 +111,24 @@ test('视觉规则排在同族通配之前：glm-5v / glm-4.5v / qwen-*-vl 不�
   assert.ok(qvl.input.includes('image'), 'qwen3.8-max-vl 必须命中 vl 规则，不能落到 qwen3.8-max');
 });
 
+test('K3.1 Pro 命中专属规则，不被 /^kimi-k3/ 前缀通配判成纯文本', () => {
+  const moonshot = VENDORS.find((v) => v.id === 'moonshot');
+  // 出处：https://platform.kimi.ai/docs/guide/kimi-k3-1-pro-quickstart
+  // 官方有 Vision input 章节 + 定价页 1,048,576 上下文。
+  for (const id of ['kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed']) {
+    const spec = modelSpec(moonshot, id);
+    assert.equal(spec.match.toString(), String(/^kimi-k3\.1-pro(?:-highspeed)?$/i), id + ' 必须命中专属规则');
+    assert.ok(spec.input.includes('image'), id + ' 必须带图片能力');
+    assert.equal(spec.contextWindow, 1048576);
+    assert.deepEqual(Object.keys(spec.efforts), ['low', 'high', 'max']);
+    assert.ok(spec.forcedThinking, id + ' 恒开思考，必须有 forcedThinking');
+  }
+  // 同族旧型号仍走前缀通配，不被新规则误伤
+  for (const id of ['kimi-k3', 'kimi-k3-1']) {
+    assert.equal(modelSpec(moonshot, id).contextWindow, 1000000, id + ' 应仍走 /^kimi-k3/ 规则');
+  }
+});
+
 test('每条规则都能编译，且产物带上官方上下文', () => {
   eachModel((v, m, label) => {
     const { entry } = compileModel({
